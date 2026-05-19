@@ -1,0 +1,17 @@
+version = 0.1
+
+[default.build.parameters]
+build_dir = 'C:\Users\Admin\Desktop\Incedo\AI Mini Project\portfolio-risk-alert-system\.aws-sam\build'
+cache_dir = 'C:\Users\Admin\Desktop\Incedo\AI Mini Project\portfolio-risk-alert-system\.aws-sam\cache'
+
+[default.deploy.parameters]
+stack_name = "portfolio-risk-alert-system"
+resolve_s3 = true
+s3_prefix = "portfolio-risk-alert-system"
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+image_repositories = []
+
+[default.global.parameters]
+region = "us-east-1"

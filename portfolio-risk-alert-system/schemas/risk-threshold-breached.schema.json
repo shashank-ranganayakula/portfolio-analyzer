@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/risk-threshold-breached.schema.json",
+  "title": "RiskThresholdBreached",
+  "type": "object",
+  "required": ["eventType", "eventId", "timestamp", "source", "data"],
+  "properties": {
+    "eventType": { "const": "RiskThresholdBreached" },
+    "eventId": { "type": "string" },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "source": { "const": "risk-service" },
+    "data": {
+      "type": "object",
+      "required": ["clientId", "riskType", "severity", "portfolioValue", "details"],
+      "properties": {
+        "clientId": { "type": "string" },
+        "riskType": {
+          "enum": ["ALLOCATION_DRIFT", "SINGLE_STOCK_EXPOSURE", "DAILY_PORTFOLIO_DROP"]
+        },
+        "severity": { "enum": ["LOW", "MEDIUM", "HIGH"] },
+        "portfolioValue": { "type": "number" },
+        "details": { "type": "object" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
+

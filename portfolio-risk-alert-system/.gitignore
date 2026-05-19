@@ -1,0 +1,5 @@
+node_modules/
+.aws-sam/
+.sam/
+.sam-abs/
+frontend/dist/

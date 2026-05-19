@@ -1,0 +1,302 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: AI-driven real-time portfolio risk alert demo using Lambda, DynamoDB, EventBridge, SQS, and API Gateway.
+
+Globals:
+  Function:
+    Runtime: nodejs24.x
+    Architectures:
+      - x86_64
+    Timeout: 15
+    MemorySize: 256
+    CodeUri: ../backend/
+    Environment:
+      Variables:
+        EVENT_BUS_NAME: !Ref PortfolioRiskEventBus
+        PORTFOLIOS_TABLE: !Ref PortfoliosTable
+        MARKET_PRICES_TABLE: !Ref MarketPricesTable
+        RISK_ALERTS_TABLE: !Ref RiskAlertsTable
+        AI_INSIGHTS_TABLE: !Ref AIInsightsTable
+        RISK_ALERT_QUEUE_URL: !Ref RiskAlertQueue
+        AI_PROVIDER: groq
+        AI_MODEL: llama-3.1-8b-instant
+        CORS_ORIGIN: "*"
+    LoggingConfig:
+      LogFormat: JSON
+
+Resources:
+  PortfolioApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      CorsConfiguration:
+        AllowOrigins:
+          - "*"
+        AllowMethods:
+          - GET
+          - POST
+          - OPTIONS
+        AllowHeaders:
+          - content-type
+          - authorization
+
+  PortfoliosTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: portfolio-risk-alert-portfolios
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: clientId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: clientId
+          KeyType: HASH
+
+  MarketPricesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: portfolio-risk-alert-market-prices
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: symbol
+          AttributeType: S
+      KeySchema:
+        - AttributeName: symbol
+          KeyType: HASH
+
+  RiskAlertsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: portfolio-risk-alert-risk-alerts
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: alertId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: alertId
+          KeyType: HASH
+
+  AIInsightsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: portfolio-risk-alert-ai-insights
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: insightId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: insightId
+          KeyType: HASH
+
+  PortfolioRiskEventBus:
+    Type: AWS::Events::EventBus
+    Properties:
+      Name: portfolio-risk-alert-bus
+
+  RiskAlertDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: 1209600
+
+  RiskAlertQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt RiskAlertDLQ.Arn
+        maxReceiveCount: 3
+      VisibilityTimeout: 60
+
+  PortfolioServiceFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/portfolio-service/handlers.listPortfolios
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref PortfoliosTable
+      Events:
+        ListPortfolios:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref PortfolioApi
+            Method: GET
+            Path: /portfolios
+
+  GetPortfolioFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/portfolio-service/handlers.getPortfolio
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref PortfoliosTable
+      Events:
+        GetPortfolio:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref PortfolioApi
+            Method: GET
+            Path: /portfolios/{clientId}
+
+  GetAllocationFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/portfolio-service/handlers.getAllocation
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref PortfoliosTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref MarketPricesTable
+      Events:
+        GetAllocation:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref PortfolioApi
+            Method: GET
+            Path: /portfolios/{clientId}/allocation
+
+  MarketDataFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/market-data-service/handlers.simulatePrices
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MarketPricesTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - events:PutEvents
+              Resource: !GetAtt PortfolioRiskEventBus.Arn
+      Events:
+        SimulatePrices:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref PortfolioApi
+            Method: POST
+            Path: /simulate-prices
+
+  RiskServiceFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/risk-service/handlers.handlePriceUpdated
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref PortfoliosTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref MarketPricesTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref RiskAlertsTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - events:PutEvents
+              Resource: !GetAtt PortfolioRiskEventBus.Arn
+      Events:
+        PriceUpdatedRule:
+          Type: EventBridgeRule
+          Properties:
+            EventBusName: !Ref PortfolioRiskEventBus
+            Pattern:
+              detail-type:
+                - PriceUpdated
+
+  ListAlertsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/risk-service/handlers.listAlerts
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref RiskAlertsTable
+      Events:
+        ListAlerts:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref PortfolioApi
+            Method: GET
+            Path: /alerts
+
+  GetClientAlertsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/risk-service/handlers.getAlertsByClient
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref RiskAlertsTable
+      Events:
+        GetClientAlerts:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref PortfolioApi
+            Method: GET
+            Path: /alerts/{clientId}
+
+  RiskAlertQueueRule:
+    Type: AWS::Events::Rule
+    Properties:
+      EventBusName: !Ref PortfolioRiskEventBus
+      EventPattern:
+        detail-type:
+          - RiskThresholdBreached
+      Targets:
+        - Arn: !GetAtt RiskAlertQueue.Arn
+          Id: RiskAlertQueueTarget
+
+  EventBridgeToRiskAlertQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref RiskAlertQueue
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sqs:SendMessage
+            Resource: !GetAtt RiskAlertQueue.Arn
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !GetAtt RiskAlertQueueRule.Arn
+
+  AIInsightFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/ai-insight-service/handlers.handleRiskAlert
+      Timeout: 20
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref AIInsightsTable
+        - SQSPollerPolicy:
+            QueueName: !GetAtt RiskAlertQueue.QueueName
+      Events:
+        RiskAlertQueueEvent:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt RiskAlertQueue.Arn
+            BatchSize: 5
+
+  GetClientInsightsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/ai-insight-service/handlers.getInsightsByClient
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref AIInsightsTable
+      Events:
+        GetClientInsights:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref PortfolioApi
+            Method: GET
+            Path: /insights/{clientId}
+
+Outputs:
+  ApiEndpoint:
+    Description: HTTP API endpoint for the dashboard.
+    Value: !Sub "https://${PortfolioApi}.execute-api.${AWS::Region}.amazonaws.com"
+  EventBusName:
+    Description: Custom EventBridge bus name.
+    Value: !Ref PortfolioRiskEventBus
+  PortfoliosTableName:
+    Description: DynamoDB table for client portfolios.
+    Value: !Ref PortfoliosTable
+  MarketPricesTableName:
+    Description: DynamoDB table for latest market prices.
+    Value: !Ref MarketPricesTable

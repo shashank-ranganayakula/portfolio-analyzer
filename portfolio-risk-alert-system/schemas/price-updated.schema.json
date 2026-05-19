@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/price-updated.schema.json",
+  "title": "PriceUpdated",
+  "type": "object",
+  "required": ["eventType", "eventId", "timestamp", "source", "data"],
+  "properties": {
+    "eventType": { "const": "PriceUpdated" },
+    "eventId": { "type": "string" },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "source": { "const": "market-data-service" },
+    "data": {
+      "type": "object",
+      "required": ["symbol", "price", "previousPrice", "changePercent"],
+      "properties": {
+        "symbol": { "type": "string" },
+        "price": { "type": "number" },
+        "previousPrice": { "type": "number" },
+        "changePercent": { "type": "number" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
+

@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/ai-insight-generated.schema.json",
+  "title": "AIInsightGenerated",
+  "type": "object",
+  "required": ["eventType", "eventId", "timestamp", "source", "data"],
+  "properties": {
+    "eventType": { "const": "AIInsightGenerated" },
+    "eventId": { "type": "string" },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "source": { "const": "ai-insight-service" },
+    "data": {
+      "type": "object",
+      "required": ["clientId", "alertId", "severity", "explanation", "suggestedAction"],
+      "properties": {
+        "clientId": { "type": "string" },
+        "alertId": { "type": "string" },
+        "severity": { "enum": ["LOW", "MEDIUM", "HIGH"] },
+        "explanation": { "type": "string" },
+        "suggestedAction": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
+
