@@ -1,0 +1,17 @@
+{
+  "detail-type": "PriceUpdated",
+  "source": "market-data-service",
+  "detail": {
+    "eventType": "PriceUpdated",
+    "eventId": "local-price-updated",
+    "timestamp": "2026-05-13T10:00:00Z",
+    "source": "market-data-service",
+    "data": {
+      "symbol": "AAPL",
+      "price": 183.16,
+      "previousPrice": 192.4,
+      "changePercent": -4.8
+    }
+  }
+}
+

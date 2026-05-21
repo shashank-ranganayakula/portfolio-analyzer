@@ -1,0 +1,9 @@
+{
+  "Records": [
+    {
+      "messageId": "local-risk-alert-message",
+      "body": "{\"detail-type\":\"RiskThresholdBreached\",\"source\":\"risk-service\",\"detail\":{\"eventType\":\"RiskThresholdBreached\",\"eventId\":\"local-risk-event\",\"timestamp\":\"2026-05-13T10:00:00Z\",\"source\":\"risk-service\",\"data\":{\"alertId\":\"alert-local-001\",\"clientId\":\"C001\",\"riskType\":\"SINGLE_STOCK_EXPOSURE\",\"severity\":\"HIGH\",\"portfolioValue\":104500,\"details\":{\"symbol\":\"AAPL\",\"actualWeight\":0.32,\"threshold\":0.2}}}}"
+    }
+  ]
+}
+

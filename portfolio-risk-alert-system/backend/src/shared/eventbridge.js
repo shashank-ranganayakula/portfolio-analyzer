@@ -15,11 +15,13 @@ export const createDomainEvent = ({ eventType, source, data }) => ({
   data
 });
 
+const sleep = (durationMs) => new Promise((resolve) => setTimeout(resolve, durationMs));
+
 // Business services call this helper after deterministic work is complete.
 export const publishDomainEvent = async ({ eventType, source, data }) => {
   const detail = createDomainEvent({ eventType, source, data });
 
-  await eventBridgeClient.send(
+  const result = await eventBridgeClient.send(
     new PutEventsCommand({
       Entries: [
         {
@@ -32,5 +34,38 @@ export const publishDomainEvent = async ({ eventType, source, data }) => {
     })
   );
 
+  if (result.FailedEntryCount > 0) {
+    throw new Error(`Failed to publish ${result.FailedEntryCount} EventBridge event(s)`);
+  }
+
   return detail;
+};
+
+export const publishDomainEvents = async (events, { batchSize = 10, delayMs = 0 } = {}) => {
+  const details = events.map(createDomainEvent);
+  const entries = details.map((detail) => ({
+    EventBusName: config.eventBusName,
+    Source: detail.source,
+    DetailType: detail.eventType,
+    Detail: JSON.stringify(detail)
+  }));
+  const safeBatchSize = Math.max(1, Math.min(batchSize, 10));
+
+  for (let index = 0; index < entries.length; index += safeBatchSize) {
+    const result = await eventBridgeClient.send(
+      new PutEventsCommand({
+        Entries: entries.slice(index, index + safeBatchSize)
+      })
+    );
+
+    if (result.FailedEntryCount > 0) {
+      throw new Error(`Failed to publish ${result.FailedEntryCount} EventBridge event(s)`);
+    }
+
+    if (delayMs > 0 && index + safeBatchSize < entries.length) {
+      await sleep(delayMs);
+    }
+  }
+
+  return details;
 };

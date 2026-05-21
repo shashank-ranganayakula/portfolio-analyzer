@@ -127,6 +127,7 @@ Choose one provider:
 $env:AI_PROVIDER = "groq"
 $env:AI_API_KEY = "<your-groq-api-key>"
 $env:AI_MODEL = "llama-3.1-8b-instant"
+$env:AI_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 ```
 
 or:
@@ -134,10 +135,11 @@ or:
 ```powershell
 $env:AI_PROVIDER = "nvidia"
 $env:AI_API_KEY = "<your-nvidia-api-key>"
-$env:AI_MODEL = "<your-nvidia-model-name>"
+$env:AI_MODEL = "meta/llama-3.1-8b-instruct"
+$env:AI_API_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
 ```
 
-For Phase 1, the key is not required because AI business logic is not implemented yet. In later phases, missing or failed AI calls must fall back to a deterministic explanation.
+The key is optional for the demo. If it is blank, missing, or the provider call fails, the AI Insight Service stores deterministic fallback commentary.
 
 ## 7. Install Project Dependencies
 
@@ -274,7 +276,90 @@ The seed script writes:
 
 Use `npm.cmd` on PowerShell if `npm.ps1` is blocked by execution policy.
 
-## 12. Cost Safety Checklist
+## 12. Trigger Manual Price Simulation
+
+After the stack is deployed and the seed data is loaded, call the market data simulation endpoint:
+
+```powershell
+$env:API_ENDPOINT = "<ApiEndpoint output from sam deploy>"
+Invoke-RestMethod `
+  -Method Post `
+  -Uri "$($env:API_ENDPOINT.TrimEnd('/'))/simulate-prices" `
+  -ContentType "application/json" `
+  -Body (@{ scenario = "stress" } | ConvertTo-Json)
+```
+
+PowerShell note: `Invoke-RestMethod` avoids JSON quoting issues. If you use `curl.exe`, wrap JSON in single quotes: `'{"scenario":"stress"}'`.
+
+Available scenarios:
+
+- `mixed`
+- `stable`
+- `rally`
+- `stress`
+
+Expected:
+
+- 20 market prices are updated by default.
+- One `PriceUpdated` event is published per updated symbol.
+- The response includes `scenario`, `updatedPrices`, `publishedEvents`, and `prices`.
+
+## 13. Inspect Risk Alerts
+
+After price simulation runs, the Risk Service evaluates affected portfolios and stores deterministic alerts.
+
+```powershell
+curl.exe "$env:API_ENDPOINT/alerts"
+curl.exe "$env:API_ENDPOINT/alerts/C001"
+```
+
+Expected:
+
+- `/alerts` returns `count` and an `alerts` array.
+- `/alerts/C001` returns alerts only for client `C001`.
+- Alert records include `alertId`, `clientId`, `riskType`, `severity`, `portfolioValue`, `details`, and `createdAt`.
+
+## 14. Inspect AI Insights
+
+Risk alerts are routed through SQS to the AI Insight Service. The service stores AI-generated or fallback commentary in DynamoDB.
+
+```powershell
+curl.exe "$env:API_ENDPOINT/insights/C001"
+```
+
+Expected:
+
+- `/insights/C001` returns `count` and an `insights` array.
+- Insight records include `insightId`, `alertId`, `clientId`, `severity`, `explanation`, `suggestedAction`, `disclaimer`, `provider`, and `createdAt`.
+- `provider` is `fallback` when no AI key is configured or an AI provider call fails.
+- Fallback records may include `fallbackReason` and `requestedProvider` for troubleshooting.
+
+## 15. Run The Dashboard
+
+Configure the API endpoint returned by `sam deploy`:
+
+```powershell
+cd "C:\Users\Admin\Desktop\Incedo\AI Mini Project\portfolio-risk-alert-system\frontend"
+"VITE_API_BASE_URL=<ApiEndpoint output from sam deploy>" | Out-File -Encoding utf8 .env.local
+npm.cmd run dev -- --host 127.0.0.1
+```
+
+Open:
+
+```text
+http://127.0.0.1:5173
+```
+
+Expected:
+
+- Portfolio count loads from `/portfolios`.
+- Client selector lists seeded clients.
+- Allocation table loads from `/portfolios/{clientId}/allocation`.
+- Risk alerts load from `/alerts` and `/alerts/{clientId}`.
+- AI insights load from `/insights/{clientId}`.
+- The simulation button calls `POST /simulate-prices`.
+
+## 16. Cost Safety Checklist
 
 Before deploy, confirm:
 
@@ -294,7 +379,7 @@ cd infrastructure
 sam delete
 ```
 
-## 13. Useful Verification Commands
+## 17. Useful Verification Commands
 
 Check current AWS caller:
 
@@ -326,7 +411,13 @@ Check EventBridge buses:
 aws events list-event-buses
 ```
 
-## 14. What To Tell Codex After Setup
+Check insight records:
+
+```powershell
+aws dynamodb scan --table-name portfolio-risk-alert-ai-insights --max-items 5
+```
+
+## 18. What To Tell Codex After Setup
 
 After installing tools, send the command output for:
 

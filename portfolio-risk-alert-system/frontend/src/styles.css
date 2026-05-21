@@ -1,6 +1,6 @@
 :root {
-  color: #172033;
-  background: #f4f7fb;
+  color: #18222f;
+  background: #f3f6f8;
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
@@ -22,7 +22,7 @@ textarea {
 }
 
 .dashboard-shell {
-  width: min(1180px, calc(100% - 32px));
+  width: min(1260px, calc(100% - 32px));
   margin: 0 auto;
   padding: 32px 0;
 }
@@ -33,6 +33,11 @@ textarea {
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 24px;
+}
+
+.status-line {
+  color: #5f6f82;
+  margin: 10px 0 0;
 }
 
 .eyebrow {
@@ -61,6 +66,34 @@ h2 {
   margin-bottom: 10px;
 }
 
+.action-group,
+.control-band {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+
+.action-group {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.field-label {
+  color: #5f6f82;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+select {
+  min-height: 42px;
+  border: 1px solid #cbd6e2;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #18222f;
+  padding: 0 34px 0 12px;
+}
+
 .primary-action {
   min-height: 42px;
   border: 0;
@@ -70,6 +103,20 @@ h2 {
   cursor: pointer;
   font-weight: 700;
   padding: 0 18px;
+}
+
+.primary-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.error-banner {
+  background: #fff4ed;
+  border: 1px solid #e9ad84;
+  border-radius: 8px;
+  color: #8a3d16;
+  margin-bottom: 16px;
+  padding: 12px 14px;
 }
 
 .metric-grid,
@@ -87,8 +134,14 @@ h2 {
   grid-template-columns: 1.2fr 0.8fr;
 }
 
+.content-grid-main {
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
+  margin-bottom: 16px;
+}
+
 .metric-card,
-.panel {
+.panel,
+.control-band {
   background: #ffffff;
   border: 1px solid #dfe7f1;
   border-radius: 8px;
@@ -117,6 +170,162 @@ footer {
   padding: 20px;
 }
 
+.control-band {
+  display: grid;
+  grid-template-columns: auto minmax(210px, 300px) 1fr;
+  margin-bottom: 16px;
+  padding: 14px 16px;
+}
+
+.control-band select {
+  width: 100%;
+}
+
+.client-summary {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+}
+
+.client-summary div {
+  min-width: 0;
+}
+
+.client-summary dt {
+  color: #5f6f82;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.client-summary dd {
+  font-weight: 800;
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.panel-header,
+.item-line {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.panel-header {
+  border-bottom: 1px solid #e5ecf4;
+  margin: -2px 0 12px;
+  padding-bottom: 12px;
+}
+
+.panel-header h2 {
+  margin: 0;
+}
+
+.panel-header span {
+  color: #5f6f82;
+  font-size: 0.88rem;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  border-collapse: collapse;
+  min-width: 620px;
+  width: 100%;
+}
+
+th,
+td {
+  border-bottom: 1px solid #edf2f7;
+  padding: 11px 10px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+th:first-child,
+td:first-child {
+  text-align: left;
+}
+
+th {
+  color: #5f6f82;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+}
+
+.text-warn {
+  color: #a64f10;
+  font-weight: 800;
+}
+
+.stack-list {
+  display: grid;
+  gap: 10px;
+  max-height: 430px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.stack-list.compact {
+  max-height: 330px;
+}
+
+.list-item {
+  border: 1px solid #e5ecf4;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.list-item p {
+  color: #5f6f82;
+  line-height: 1.45;
+  margin: 8px 0 0;
+}
+
+.list-item time,
+.list-item small {
+  color: #7a8998;
+  display: block;
+  font-size: 0.82rem;
+  margin-top: 8px;
+}
+
+.suggested-action {
+  color: #2a5f58 !important;
+  font-weight: 700;
+}
+
+.severity {
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 800;
+  padding: 4px 8px;
+}
+
+.severity-high {
+  background: #ffe7e3;
+  color: #a22d20;
+}
+
+.severity-medium {
+  background: #fff3d5;
+  color: #8c5b00;
+}
+
+.severity-low {
+  background: #e7f4ee;
+  color: #1f6b4d;
+}
+
+.empty-state {
+  color: #7a8998;
+  margin: 12px 0 0;
+}
+
 footer {
   font-size: 0.9rem;
   margin-top: 18px;
@@ -136,12 +345,16 @@ code {
   }
 
   .metric-grid,
-  .content-grid {
+  .content-grid,
+  .content-grid-main,
+  .control-band,
+  .client-summary {
     grid-template-columns: 1fr;
   }
 
-  .primary-action {
+  .primary-action,
+  .action-group,
+  .action-group select {
     width: 100%;
   }
 }
-

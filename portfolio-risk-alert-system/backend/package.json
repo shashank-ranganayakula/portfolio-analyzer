@@ -6,7 +6,7 @@
   "description": "Node.js 24 Lambda backend for the AI-driven portfolio risk alert demo.",
   "scripts": {
     "test": "node --test",
-    "check": "node --check src/shared/config.js && node --check src/shared/dynamodb.js && node --check src/shared/eventbridge.js && node --check src/shared/response.js && node --check src/shared/logger.js && node --check src/portfolio-service/allocation.js && node --check src/portfolio-service/repository.js && node --check src/portfolio-service/handlers.js && node --check src/market-data-service/handlers.js && node --check src/risk-service/handlers.js && node --check src/ai-insight-service/handlers.js && node --check src/seed/seedData.js",
+    "check": "node --check src/shared/config.js && node --check src/shared/dynamodb.js && node --check src/shared/eventbridge.js && node --check src/shared/response.js && node --check src/shared/logger.js && node --check src/portfolio-service/allocation.js && node --check src/portfolio-service/repository.js && node --check src/portfolio-service/handlers.js && node --check src/market-data-service/simulator.js && node --check src/market-data-service/repository.js && node --check src/market-data-service/handlers.js && node --check src/risk-service/riskEngine.js && node --check src/risk-service/repository.js && node --check src/risk-service/handlers.js && node --check src/ai-insight-service/insightGenerator.js && node --check src/ai-insight-service/repository.js && node --check src/ai-insight-service/handlers.js && node --check src/seed/seedData.js",
     "seed": "node src/seed/seedData.js"
   },
   "dependencies": {

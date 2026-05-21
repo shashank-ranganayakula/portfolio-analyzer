@@ -2,6 +2,38 @@ AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: AI-driven real-time portfolio risk alert demo using Lambda, DynamoDB, EventBridge, SQS, and API Gateway.
 
+Parameters:
+  AIProvider:
+    Type: String
+    Default: groq
+    AllowedValues:
+      - groq
+      - nvidia
+    Description: AI provider used for educational insight generation.
+  AIModel:
+    Type: String
+    Default: llama-3.1-8b-instant
+    Description: AI model id for the selected provider.
+  AIAPIKey:
+    Type: String
+    Default: ""
+    NoEcho: true
+    Description: Optional Groq or NVIDIA API key. Leave blank to use deterministic fallback insights.
+  AIAPIUrl:
+    Type: String
+    Default: ""
+    Description: Optional OpenAI-compatible chat completions endpoint override.
+  AIThrottleMs:
+    Type: Number
+    Default: 2500
+    MinValue: 0
+    Description: Milliseconds to wait before each AI provider call to stay within free-tier rate limits.
+  AIMaxRetries:
+    Type: Number
+    Default: 2
+    MinValue: 0
+    Description: Number of retry attempts for transient AI provider rate limits.
+
 Globals:
   Function:
     Runtime: nodejs24.x
@@ -18,8 +50,12 @@ Globals:
         RISK_ALERTS_TABLE: !Ref RiskAlertsTable
         AI_INSIGHTS_TABLE: !Ref AIInsightsTable
         RISK_ALERT_QUEUE_URL: !Ref RiskAlertQueue
-        AI_PROVIDER: groq
-        AI_MODEL: llama-3.1-8b-instant
+        AI_PROVIDER: !Ref AIProvider
+        AI_API_KEY: !Ref AIAPIKey
+        AI_MODEL: !Ref AIModel
+        AI_API_URL: !Ref AIAPIUrl
+        AI_THROTTLE_MS: !Sub "${AIThrottleMs}"
+        AI_MAX_RETRIES: !Sub "${AIMaxRetries}"
         CORS_ORIGIN: "*"
     LoggingConfig:
       LogFormat: JSON
@@ -103,7 +139,7 @@ Resources:
       RedrivePolicy:
         deadLetterTargetArn: !GetAtt RiskAlertDLQ.Arn
         maxReceiveCount: 3
-      VisibilityTimeout: 60
+      VisibilityTimeout: 120
 
   PortfolioServiceFunction:
     Type: AWS::Serverless::Function
@@ -156,6 +192,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: src/market-data-service/handlers.simulatePrices
+      Timeout: 30
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref MarketPricesTable
@@ -259,18 +296,25 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: src/ai-insight-service/handlers.handleRiskAlert
-      Timeout: 20
+      Timeout: 60
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref AIInsightsTable
         - SQSPollerPolicy:
             QueueName: !GetAtt RiskAlertQueue.QueueName
+        - Statement:
+            - Effect: Allow
+              Action:
+                - events:PutEvents
+              Resource: !GetAtt PortfolioRiskEventBus.Arn
       Events:
         RiskAlertQueueEvent:
           Type: SQS
           Properties:
             Queue: !GetAtt RiskAlertQueue.Arn
-            BatchSize: 5
+            BatchSize: 1
+            ScalingConfig:
+              MaximumConcurrency: 2
 
   GetClientInsightsFunction:
     Type: AWS::Serverless::Function

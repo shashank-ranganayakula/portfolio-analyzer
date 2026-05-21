@@ -26,7 +26,10 @@ export const config = {
   ai: {
     provider: optionalEnv("AI_PROVIDER", "groq"),
     apiKey: optionalEnv("AI_API_KEY"),
-    model: optionalEnv("AI_MODEL", "llama-3.1-8b-instant")
+    model: optionalEnv("AI_MODEL", "llama-3.1-8b-instant"),
+    apiUrl: optionalEnv("AI_API_URL"),
+    throttleMs: Number(optionalEnv("AI_THROTTLE_MS", "2500")),
+    maxRetries: Number(optionalEnv("AI_MAX_RETRIES", "2"))
   },
   cors: {
     origin: optionalEnv("CORS_ORIGIN", "*")

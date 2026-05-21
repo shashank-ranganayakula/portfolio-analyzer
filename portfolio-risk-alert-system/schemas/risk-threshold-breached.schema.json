@@ -11,8 +11,9 @@
     "source": { "const": "risk-service" },
     "data": {
       "type": "object",
-      "required": ["clientId", "riskType", "severity", "portfolioValue", "details"],
+      "required": ["alertId", "clientId", "riskType", "severity", "portfolioValue", "details"],
       "properties": {
+        "alertId": { "type": "string" },
         "clientId": { "type": "string" },
         "riskType": {
           "enum": ["ALLOCATION_DRIFT", "SINGLE_STOCK_EXPOSURE", "DAILY_PORTFOLIO_DROP"]
@@ -26,4 +27,3 @@
   },
   "additionalProperties": false
 }
-
