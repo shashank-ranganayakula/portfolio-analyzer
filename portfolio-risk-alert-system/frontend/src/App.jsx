@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { api, apiBaseUrl } from "./api.js";
+import { api } from "./api.js";
 
 const currency = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -30,6 +30,47 @@ const formatDateTime = (value) => {
 
 const severityClass = (severity) => `severity severity-${String(severity ?? "low").toLowerCase()}`;
 
+const severityRank = {
+  LOW: 1,
+  MEDIUM: 2,
+  HIGH: 3
+};
+
+const getHighestSeverity = (insights) =>
+  insights.reduce(
+    (highest, insight) => (severityRank[insight.severity] > severityRank[highest] ? insight.severity : highest),
+    "LOW"
+  );
+
+const unique = (items) => [...new Set(items.filter(Boolean))];
+
+const consolidateClientInsights = (insights, clientId) => {
+  const clientInsights = insights.filter((insight) => insight.clientId === clientId);
+
+  if (clientInsights.length <= 1) {
+    return clientInsights;
+  }
+
+  const newest = clientInsights[0];
+  const providers = unique(clientInsights.map((insight) => insight.provider));
+  const explanations = unique(clientInsights.map((insight) => insight.explanation)).slice(0, 3);
+  const actions = unique(clientInsights.map((insight) => insight.suggestedAction)).slice(0, 3);
+
+  return [
+    {
+      insightId: `consolidated-${clientId}`,
+      clientId,
+      provider: providers.join(" + "),
+      severity: getHighestSeverity(clientInsights),
+      explanation: `Consolidated ${clientInsights.length} insights for ${clientId}: ${explanations.join(" ")}`,
+      suggestedAction: actions.join(" "),
+      disclaimer: newest.disclaimer,
+      sourceInsightCount: clientInsights.length,
+      createdAt: newest.createdAt
+    }
+  ];
+};
+
 function EmptyState({ children }) {
   return <p className="empty-state">{children}</p>;
 }
@@ -58,17 +99,17 @@ function App() {
 
     try {
       const portfolioResult = await api.listPortfolios();
-      const alertsResult = await api.listAlerts();
       const allocationResult = await api.getAllocation(clientId);
       const clientAlertsResult = await api.getClientAlerts(clientId);
       const insightsResult = await api.getClientInsights(clientId);
 
       const nextPortfolios = portfolioResult.portfolios ?? [];
+      const selectedClientAlerts = (clientAlertsResult.alerts ?? []).filter((alert) => alert.clientId === clientId);
       setPortfolios(nextPortfolios);
-      setAlerts(alertsResult.alerts ?? []);
+      setAlerts(selectedClientAlerts);
       setAllocation(allocationResult.allocation ?? null);
-      setClientAlerts(clientAlertsResult.alerts ?? []);
-      setInsights((insightsResult.insights ?? []).filter((insight) => insight.clientId === clientId).slice(0, 1));
+      setClientAlerts(selectedClientAlerts);
+      setInsights(consolidateClientInsights(insightsResult.insights ?? [], clientId));
 
       if (!nextPortfolios.some((portfolio) => portfolio.clientId === clientId) && nextPortfolios[0]) {
         setSelectedClientId(nextPortfolios[0].clientId);
@@ -112,8 +153,8 @@ function App() {
   };
 
   const portfolioValue = allocation?.portfolioValue ?? 0;
-  const totalDriftAlerts = alerts.filter((alert) => alert.riskType === "ALLOCATION_DRIFT").length;
-  const highAlerts = alerts.filter((alert) => alert.severity === "HIGH").length;
+  const totalDriftAlerts = clientAlerts.filter((alert) => alert.riskType === "ALLOCATION_DRIFT").length;
+  const highAlerts = clientAlerts.filter((alert) => alert.severity === "HIGH").length;
 
   return (
     <main className="dashboard-shell">
@@ -152,8 +193,8 @@ function App() {
           <strong>{currency.format(portfolioValue)}</strong>
         </article>
         <article className="metric-card">
-          <span>Open Alerts</span>
-          <strong>{alerts.length}</strong>
+          <span>Client Alerts</span>
+          <strong>{clientAlerts.length}</strong>
         </article>
         <article className="metric-card">
           <span>High Severity</span>
@@ -169,7 +210,7 @@ function App() {
           {portfolios.length === 0 && <option value={selectedClientId}>{selectedClientId}</option>}
           {portfolios.map((portfolio) => (
             <option key={portfolio.clientId} value={portfolio.clientId}>
-              {portfolio.clientId} - {portfolio.clientName}
+              {portfolio.clientName} - {portfolio.clientId}
             </option>
           ))}
         </select>
@@ -248,7 +289,7 @@ function App() {
       <section className="content-grid">
         <article className="panel">
           <div className="panel-header">
-            <h2>Recent Alerts</h2>
+            <h2>Recent Client Alerts</h2>
             <span>{alerts.length}</span>
           </div>
           <div className="stack-list compact">
@@ -277,6 +318,9 @@ function App() {
                   <strong>{insight.provider}</strong>
                   <span className={severityClass(insight.severity)}>{insight.severity}</span>
                 </div>
+                {insight.sourceInsightCount > 1 && (
+                  <time>{insight.sourceInsightCount} selected-client insights consolidated</time>
+                )}
                 <p>{insight.explanation}</p>
                 <p className="suggested-action">{insight.suggestedAction}</p>
                 <small>{insight.disclaimer}</small>
@@ -287,9 +331,6 @@ function App() {
         </article>
       </section>
 
-      <footer>
-        API target: <code>{apiBaseUrl}</code>
-      </footer>
     </main>
   );
 }

@@ -17,3 +17,11 @@ test("seed portfolios are deterministic and shaped for DynamoDB", () => {
   assert.ok(first.holdings.every((holding) => symbols.includes(holding.symbol)));
   assert.ok(first.holdings.every((holding) => holding.quantity > 0));
 });
+
+test("each seeded portfolio has a unique stock mix", () => {
+  const signatures = seedPortfolios.map((portfolio) =>
+    portfolio.holdings.map((holding) => holding.symbol).sort().join("|")
+  );
+
+  assert.equal(new Set(signatures).size, seedPortfolios.length);
+});

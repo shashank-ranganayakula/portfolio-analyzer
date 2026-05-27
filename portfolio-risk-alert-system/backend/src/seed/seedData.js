@@ -52,9 +52,53 @@ const modelWeights = [0.22, 0.18, 0.16, 0.15, 0.14, 0.15];
 
 const formatClientId = (index) => `C${String(index).padStart(3, "0")}`;
 
+const binomial = (n, k) => {
+  if (k < 0 || k > n) {
+    return 0;
+  }
+
+  let result = 1;
+  const limit = Math.min(k, n - k);
+
+  for (let index = 1; index <= limit; index += 1) {
+    result = (result * (n - limit + index)) / index;
+  }
+
+  return Math.round(result);
+};
+
+const combinationFromRank = (items, size, rank) => {
+  const result = [];
+  let start = 0;
+  let remainingRank = rank;
+
+  for (let position = 0; position < size; position += 1) {
+    for (let itemIndex = start; itemIndex < items.length; itemIndex += 1) {
+      const combinationsIfSelected = binomial(items.length - itemIndex - 1, size - position - 1);
+
+      if (remainingRank < combinationsIfSelected) {
+        result.push(items[itemIndex]);
+        start = itemIndex + 1;
+        break;
+      }
+
+      remainingRank -= combinationsIfSelected;
+    }
+  }
+
+  return result;
+};
+
+const buildClientSymbols = (clientIndex) => {
+  const totalCombinations = binomial(symbols.length, modelWeights.length);
+  const rank = (clientIndex * 271) % totalCombinations;
+
+  return combinationFromRank(symbols, modelWeights.length, rank);
+};
+
 const buildHoldings = (clientIndex) =>
-  modelWeights.map((modelWeight, holdingIndex) => {
-    const symbol = symbols[(clientIndex + holdingIndex * 3) % symbols.length];
+  buildClientSymbols(clientIndex).map((symbol, holdingIndex) => {
+    const modelWeight = modelWeights[holdingIndex];
     const price = initialPrices[symbol];
     const targetPortfolioValue = 85000 + clientIndex * 850;
     const targetHoldingValue = targetPortfolioValue * modelWeight;

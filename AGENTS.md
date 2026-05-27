@@ -305,3 +305,66 @@ Changed frontend AI Insights panel to display only the newest single insight for
 
 Verification:
 - Frontend `npm.cmd run build` passed.
+
+### Frontend Visual Polish
+
+Refreshed the dashboard CSS for a more professional, minimal, fintech-operations look:
+- Softer app background and cleaner white surfaces.
+- Tighter typography hierarchy and spacing.
+- Less heavy card treatment with subtle borders/shadows.
+- More polished select/button focus, hover, and disabled states.
+- Cleaner table density and row hover state.
+- Refined alert/insight list cards and severity badges.
+- Responsive breakpoints for tablet and mobile layouts.
+
+Verification:
+- Frontend `npm.cmd run build` passed.
+
+### Comprehensive Project Explainer
+
+Added `portfolio-risk-alert-system/docs/project-explainer.md` as a detailed handoff and presentation document. It covers:
+- Project overview and business problem.
+- Final architecture and event flow.
+- Technologies used and why each matters.
+- Data model, services, APIs, and risk rules.
+- AI integration and fallback behavior.
+- Runtime fixes for SAM, Groq, rate limits, and Lambda concurrency.
+- Testing/verification steps.
+- Completed work, pending work, limitations, and improvement roadmap.
+- Demo narration and technical talking points.
+
+Updated the explainer with a command reference section covering setup, AWS identity checks, backend/frontend verification, SAM validation/build/deploy, DynamoDB seeding, manual API tests, diagnostics, CloudWatch metrics/logs, and cleanup. Each command includes why it was used.
+
+### Client-Specific Portfolio Display
+
+Updated seed data so all 100 demo portfolios have unique six-stock symbol combinations, not just different quantities. Added a unit test that asserts every seeded portfolio has a unique stock mix.
+
+Updated dashboard behavior so selected-client operations are visually scoped to the selected individual:
+- Metrics for alerts and high severity now use selected-client alerts.
+- Recent alerts panel shows selected-client alerts.
+- AI insight panel still shows only one selected-client insight.
+- Client dropdown labels now put the client name first.
+- Removed the API target footer from the frontend.
+
+Verification:
+- Backend `npm.cmd run check` passed.
+- Backend `npm.cmd test` passed with 23 tests.
+- Frontend `npm.cmd run build` passed.
+
+Operational note:
+- Existing deployed DynamoDB portfolio records keep their old holdings until `cd backend && npm.cmd run seed` is run again.
+
+### AI Insight Relevance and Consolidation
+
+Verified deployed AI insight relevance by scanning `portfolio-risk-alert-ai-insights` and `portfolio-risk-alert-risk-alerts`:
+- 4,293 insight records scanned.
+- 4,293 alert-linked insights checked.
+- 0 client mismatches between insight `clientId` and source alert `clientId`.
+
+Updated frontend AI Insights panel:
+- It still consumes `GET /insights/{clientId}`.
+- It defensively filters returned insights to the selected client.
+- If multiple selected-client insights exist, it consolidates them into one displayed summary using highest severity, unique providers, up to three distinct explanations, and up to three distinct suggested actions.
+
+Verification:
+- Frontend `npm.cmd run build` passed.
