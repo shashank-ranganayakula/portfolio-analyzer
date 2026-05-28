@@ -368,3 +368,19 @@ Updated frontend AI Insights panel:
 
 Verification:
 - Frontend `npm.cmd run build` passed.
+
+### Submission Deliverables Split
+
+Replaced the large standalone submission README with four focused deliverable files:
+- `portfolio-risk-alert-system/docs/architecture-uml-diagram.md` for PlantUML and Mermaid architecture diagrams.
+- `portfolio-risk-alert-system/docs/event-schema-definitions.md` for event contract definitions and examples.
+- `portfolio-risk-alert-system/docs/five-minute-demo-script.md` for a timed screen-recording script covering codebase, architecture, and dashboard demo.
+- `portfolio-risk-alert-system/SUBMISSION_README.md` focused only on design decisions, architectural trade-offs, scaling strategy, and AI prompt approach.
+
+No runtime code was changed.
+
+Updated `portfolio-risk-alert-system/SUBMISSION_README.md` with a service and seed data section describing Portfolio Service, Market Data Service, Risk Service, AI Insight Service, and the deterministic seed dataset.
+
+### Git Ignore Update
+
+Added `docs/` and `scripts/` to `portfolio-risk-alert-system/.gitignore` per user request so documentation and helper scripts are not uploaded in future commits.
